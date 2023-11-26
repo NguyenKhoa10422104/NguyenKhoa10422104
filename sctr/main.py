@@ -1,7 +1,7 @@
 # main.py
 
-from scheduler import start_scheduler
+from scheduler import Scheduler
 
-# Call the start_scheduler function when this script is run as the main module
 if __name__ == "__main__":
-    start_scheduler()
+    scheduler = Scheduler()
+    scheduler.run()

@@ -1,55 +1,35 @@
 import requests
-import time
 
-# Adafruit IO credentials
-ADAFRUIT_IO_USERNAME = "NguyenAnhKhoa"
-ADAFRUIT_IO_KEY = "aio_LWUU04Yp2NOGKYIIcmtzUwl3SXCY"
+class AdafruitIOUploader:
+    def __init__(self, username, key, feed_name_1, feed_name_2, feed_name_3):
+        self.username = username
+        self.key = key
+        self.feed_url_1 = f"https://io.adafruit.com/api/v2/{self.username}/feeds/{feed_name_1}/data"
+        self.feed_url_2 = f"https://io.adafruit.com/api/v2/{self.username}/feeds/{feed_name_2}/data"
+        self.feed_url_3 = f"https://io.adafruit.com/api/v2/{self.username}/feeds/{feed_name_3}/data"
 
-# Base URL for Adafruit IO feeds
-ADAFRUIT_IO_BASE_URL = f"https://io.adafruit.com/api/v2/{ADAFRUIT_IO_USERNAME}/feeds/"
+    def upload_data(self, data):
+        headers = {"X-AIO-Key": self.key, "Content-Type": "application/json"}
 
-# Function to upload data to Adafruit IO based on confidence score
-def upload_to_adafruit(fruit, confidence_score):
-    # Decide which feed to upload based on the confidence score
-    if confidence_score < 0.3:
-        feed_name = "fruit1"
-    elif 0.3 <= confidence_score < 0.66:
-        feed_name = "fruit2"
-    else:
-        feed_name = "fruit3"
+        for result in data:
+            payload = {"value": result["confidence_score"], "fruit": result["class_name"]}
 
-    feed_url = ADAFRUIT_IO_BASE_URL + feed_name + "/data"
+            # Determine which feed to upload based on confidence score
+            if 0.0 <= result["confidence_score"] < 0.33:
+                feed_url = self.feed_url_1
+            elif 0.33 <= result["confidence_score"] <= 0.67:
+                feed_url = self.feed_url_2
+            else:
+                feed_url = self.feed_url_3
 
-    payload = {
-        "value": confidence_score,
-        "fruit": fruit,
-    }
+            try:
+                response = requests.post(feed_url, headers=headers, json=payload)
+                response.raise_for_status()
 
-    headers = {
-        "X-AIO-Key": ADAFRUIT_IO_KEY,
-        "Content-Type": "application/json",
-    }
-
-    try:
-        response = requests.post(feed_url, headers=headers, json=payload)
-        response.raise_for_status()  # Raise an error for HTTP errors
-
-        # Check for successful request
-        if response.status_code == 200:
-            print(f"Data uploaded to Adafruit IO feed {feed_url} successfully")
-        else:
-            print(f"Failed to upload data to Adafruit IO feed {feed_url}. Status code: {response.status_code}")
-    except requests.exceptions.RequestException as e:
-        print(f"Error: {e}")
-
-# Example usage
-while True:
-    # Replace these with actual values obtained from your classification
-    fruit = "Apple"
-    confidence_score = 0.7
-
-    # Upload data to Adafruit IO based on confidence score
-    upload_to_adafruit(fruit, confidence_score)
-
-    # Wait for 5 seconds before the next upload
-    time.sleep(5)
+                if response.status_code == 200:
+                    print(f"Data uploaded to Adafruit IO feed {feed_url} successfully")
+                else:
+                    print(f"Failed to upload data to Adafruit IO feed {feed_url}. Status code: {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                print(f"Error: {e}")
+                print(f"Response content: {response.text if response else 'N/A'}")
